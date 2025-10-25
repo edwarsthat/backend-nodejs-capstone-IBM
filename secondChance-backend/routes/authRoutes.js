@@ -60,4 +60,57 @@ router.post('/register', async (req, res, next) => {
     }
 });
 
+// Login endpoint
+router.post('/login', async (req, res, next) => {
+    try {
+        // Step 1: Connect to MongoDB
+        const db = await connectToDatabase();
+        
+        // Step 2: Access the MongoDB users collection
+        const collection = db.collection('users');
+
+        // Step 3: Check for user credentials in the database
+        const { email } = req.body;
+        const user = await collection.findOne({ email });
+
+        // Step 4: Check if the password entered matches the stored encrypted password
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid email or password' });
+        }
+
+        const { password } = req.body;
+        const isMatch = await bcryptjs.compare(password, user.password);
+
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Invalid email or password' });
+        }
+
+        // Step 5: Fetch user details from the database
+        const userName = user.firstName;
+        const userEmail = user.email;
+
+        // Step 6: Create JWT authentication with user._id as payload
+        const payload = {
+            user: {
+                id: user._id
+            }
+        };
+
+        const authToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+        // Step 7: Log the successful login
+        logger.info('User logged in successfully');
+
+        // Step 8: Return the user details and token as JSON
+        res.status(200).json({
+            authToken,
+            userName,
+            userEmail
+        });
+
+    } catch (e) {
+        next(e);
+    }
+});
+
 module.exports = router;
