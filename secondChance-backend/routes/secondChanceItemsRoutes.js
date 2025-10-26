@@ -43,13 +43,19 @@ router.post('/', upload.single('file'), async (req, res, next) => {
     try {
         const db = await connectToDatabase();
         const collection = db.collection("secondChanceItems");
-        let secondChanceItem = req.body
+        let secondChanceItem = req.body;
+        
         const lastItemQuery = await collection.find({}).sort({ id: -1 }).limit(1).toArray();
-        await lastItemQuery.forEach(item => {
-            secondChanceItem.id = (parseInt(item.id) + 1).toString();
-        });
-        secondChanceItem = await collection.insertOne(secondChanceItem);
-        res.status(201).json(secondChanceItem.ops[0]);
+        if (lastItemQuery.length > 0) {
+            secondChanceItem.id = (parseInt(lastItemQuery[0].id) + 1).toString();
+        } else {
+            secondChanceItem.id = "1";
+        }
+        
+        const result = await collection.insertOne(secondChanceItem);
+        const insertedItem = await collection.findOne({ _id: result.insertedId });
+        
+        res.status(201).json(insertedItem);
     } catch (e) {
         next(e);
     }

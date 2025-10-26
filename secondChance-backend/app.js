@@ -10,6 +10,9 @@ const app = express();
 app.use("*",cors());
 const port = 3060;
 
+// Serve static files from the public directory
+app.use('/images', express.static('public/images'));
+
 // Connect to MongoDB; we just do this one time
 connectToDatabase().then(() => {
     pinoLogger.info('Connected to DB');
